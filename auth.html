@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Войти / Регистрация — Пармезан Пиццалары</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Oswald:wght@400;600;700&family=Lato:wght@300;400;700&display=swap"
+        rel="stylesheet" />
+    <style>
+        :root {
+            --red: #C8212A;
+            --green: #1a7a2e;
+            --cream: #FFF8EF;
+            --dark: #1a0d0d;
+            --gold: #D4A847;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Lato', sans-serif;
+            background: var(--dark);
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            padding: 1rem 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(26, 13, 13, 0.97);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(200, 33, 42, 0.2);
+        }
+
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            text-decoration: none;
+        }
+
+        .nav-logo {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .nav-name {
+            font-family: 'Oswald', sans-serif;
+            font-size: 1.05rem;
+            letter-spacing: 2px;
+            color: white;
+            text-transform: uppercase;
+        }
+
+        .nav-back {
+            font-family: 'Oswald', sans-serif;
+            font-size: 0.8rem;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.6);
+            text-decoration: none;
+            transition: color 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .nav-back:hover {
+            color: white;
+        }
+
+        .bg-layer {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            background: var(--dark);
+        }
+
+        .bg-layer::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background:
+                radial-gradient(ellipse at 15% 40%, rgba(200, 33, 42, 0.25) 0%, transparent 55%),
+                radial-gradient(ellipse at 85% 60%, rgba(26, 122, 46, 0.12) 0%, transparent 50%);
+        }
+
+        .bg-checker {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 8px;
+            z-index: 1;
+            background: repeating-linear-gradient(90deg, var(--red) 0px, var(--red) 24px, white 24px, white 48px);
+        }
+
+        .bg-checker-top {
+            position: fixed;
+            top: 72px;
+            left: 0;
+            right: 0;
+            height: 4px;
+            z-index: 99;
+            background: repeating-linear-gradient(90deg, var(--red) 0px, var(--red) 16px, transparent 16px, transparent 32px);
+            opacity: 0.3;
+        }
+
+        .auth-wrapper {
+            position: relative;
+            z-index: 2;
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 7rem 1.5rem 5rem;
+        }
+
+        .auth-card {
+            width: 100%;
+            max-width: 460px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            padding: 3rem 2.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .auth-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--red);
+        }
+
+        .auth-card::after {
+            content: '';
+            position: absolute;
+            top: -80px;
+            right: -80px;
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(200, 33, 42, 0.15) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .auth-tabs {
+            display: flex;
+            gap: 0;
+            margin-bottom: 2.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .auth-tab {
+            flex: 1;
+            font-family: 'Oswald', sans-serif;
+            font-size: 0.85rem;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.4);
+            background: transparent;
+            border: none;
+            padding: 0.85rem 1rem;
+            cursor: pointer;
+            transition: all 0.25s;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -1px;
+        }
+
+        .auth-tab:hover {
+            color: rgba(255, 255, 255, 0.75);
+        }
+
+        .auth-tab.active {
+            color: white;
+            border-bottom-color: var(--red);
+        }
+
+        .form-panel {
+            display: none;
+            animation: fadeUp 0.35s ease;
+        }
+
+        .form-panel.active {
+            display: block;
+        }
+
+        @keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(12px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .form-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.8rem;
+            font-weight: 900;
+            margin-bottom: 0.3rem;
+            line-height: 1.1;
+        }
+
+        .form-title span {
+            color: var(--red);
+            font-style: italic;
+        }
+
+        .form-subtitle {
+            font-size: 0.82rem;
+            color: rgba(255, 255, 255, 0.4);
+            letter-spacing: 1px;
+            margin-bottom: 2rem;
+        }
+
+        .field {
+            margin-bottom: 1.2rem;
+        }
+
+        .field label {
+            display: block;
+            font-family: 'Oswald', sans-serif;
+            font-size: 0.72rem;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.5);
+            margin-bottom: 0.45rem;
+        }
+
+        .field input {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: white;
+            font-family: 'Lato', sans-serif;
+            font-size: 0.95rem;
+            padding: 0.75rem 1rem;
+            outline: none;
+            transition: border-color 0.2s, background 0.2s;
+        }
+
+        .field input::placeholder {
+            color: rgba(255, 255, 255, 0.25);
+        }
+
+        .field input:focus {
+            border-color: var(--red);
+            background: rgba(255, 255, 255, 0.09);
+        }
+
+        .field-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .field-hint {
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.3);
+            margin-top: 0.35rem;
+        }
+
+        .btn-auth {
+            width: 100%;
+            background: var(--red);
+            color: white;
+            font-family: 'Oswald', sans-serif;
+            font-size: 0.9rem;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            padding: 0.95rem 2rem;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 1.5rem;
+            clip-path: polygon(6px 0%, 100% 0%, calc(100% - 6px) 100%, 0% 100%);
+        }
+
+        .btn-auth:hover {
+            background: #a01820;
+            transform: translateY(-1px);
+            box-shadow: 0 8px 25px rgba(200, 33, 42, 0.4);
+        }
+
+        .btn-auth:disabled {
+            background: #555;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .divider {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin: 1.5rem 0;
+        }
+
+        .divider::before,
+        .divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .divider span {
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.25);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            font-family: 'Oswald', sans-serif;
+        }
+
+        .social-login {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .btn-social {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            color: rgba(255, 255, 255, 0.8);
+            font-family: 'Oswald', sans-serif;
+            font-size: 0.8rem;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            padding: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-social:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.25);
+            color: white;
+        }
+
+        .btn-social svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .terms {
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.25);
+            line-height: 1.6;
+            margin-top: 1.2rem;
+            text-align: center;
+        }
+
+        .terms a {
+            color: rgba(200, 33, 42, 0.8);
+            text-decoration: none;
+        }
+
+        .terms a:hover {
+            color: var(--red);
+        }
+
+        .alert {
+            padding: 0.75rem 1rem;
+            font-size: 0.82rem;
+            margin-bottom: 1rem;
+            display: none;
+            border-left: 3px solid;
+        }
+
+        .alert-error {
+            background: rgba(200, 33, 42, 0.1);
+            border-color: var(--red);
+            color: #ff8a8a;
+        }
+
+        .alert-success {
+            background: rgba(26, 122, 46, 0.1);
+            border-color: var(--green);
+            color: #5dba72;
+        }
+
+        .auth-side {
+            display: none;
+        }
+
+        @media (min-width: 900px) {
+            .auth-wrapper {
+                gap: 4rem;
+                align-items: center;
+            }
+
+            .auth-side {
+                display: flex;
+                flex-direction: column;
+                gap: 1.5rem;
+                max-width: 320px;
+                flex-shrink: 0;
+            }
+
+            .side-label {
+                font-family: 'Oswald', sans-serif;
+                font-size: 0.72rem;
+                letter-spacing: 6px;
+                text-transform: uppercase;
+                color: var(--red);
+                margin-bottom: 0.4rem;
+            }
+
+            .side-title {
+                font-family: 'Playfair Display', serif;
+                font-size: 2.4rem;
+                font-weight: 900;
+                line-height: 1.1;
+                color: white;
+            }
+
+            .side-title em {
+                color: var(--red);
+                font-style: italic;
+            }
+
+            .side-desc {
+                font-size: 0.88rem;
+                color: rgba(255, 255, 255, 0.45);
+                line-height: 1.7;
+            }
+
+            .side-perks {
+                list-style: none;
+                display: flex;
+                flex-direction: column;
+                gap: 0.75rem;
+                margin-top: 0.5rem;
+            }
+
+            .side-perks li {
+                display: flex;
+                align-items: center;
+                gap: 0.8rem;
+                font-size: 0.85rem;
+                color: rgba(255, 255, 255, 0.6);
+            }
+
+            .perk-dot {
+                width: 8px;
+                height: 8px;
+                background: var(--red);
+                flex-shrink: 0;
+                clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+            }
+        }
+
+        @media (max-width: 500px) {
+            .auth-card {
+                padding: 2rem 1.5rem;
+            }
+
+            .field-row {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="bg-layer"></div>
+    <div class="bg-checker"></div>
+    <div class="bg-checker-top"></div>
+
+    <nav>
+        <a href="index.html" class="nav-brand">
+            <img src="favicon.jpeg" alt="Пармезан" class="nav-logo" />
+            <span class="nav-name">Пармезан</span>
+        </a>
+        <a href="index.html" class="nav-back">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path d="M19 12H5M12 5l-7 7 7 7" />
+            </svg>
+            На главную
+        </a>
+    </nav>
+
+    <div class="auth-wrapper">
+
+        <div class="auth-side">
+            <div>
+                <p class="side-label">Пармезан Пиццалары</p>
+                <h2 class="side-title">Заказывай<br />быстро &amp; <em>вкусно</em></h2>
+            </div>
+            <p class="side-desc">Зарегистрируйся, чтобы отслеживать заказы, сохранять любимые блюда и оформлять доставку
+                в один клик.</p>
+            <ul class="side-perks">
+                <li><span class="perk-dot"></span>История всех твоих заказов</li>
+                <li><span class="perk-dot"></span>Быстрое оформление доставки</li>
+                <li><span class="perk-dot"></span>Уведомления о статусе заказа</li>
+                <li><span class="perk-dot"></span>Специальные акции для участников</li>
+            </ul>
+        </div>
+
+        <div class="auth-card">
+            <div class="auth-tabs">
+                <button class="auth-tab active" onclick="switchTab('login', this)">Войти</button>
+                <button class="auth-tab" onclick="switchTab('register', this)">Регистрация</button>
+            </div>
+
+            <!-- LOGIN -->
+            <div class="form-panel active" id="panel-login">
+                <h2 class="form-title">Добро<br /><span>пожаловать</span></h2>
+                <p class="form-subtitle">Введите данные для входа</p>
+
+                <div class="alert alert-error" id="login-error"></div>
+                <div class="alert alert-success" id="login-success">Вы успешно вошли! Перенаправляем...</div>
+
+                <div class="field">
+                    <label for="login-email">Email</label>
+                    <input type="email" id="login-email" placeholder="example@mail.com" autocomplete="email" />
+                </div>
+                <div class="field">
+                    <label for="login-password">Пароль</label>
+                    <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password" />
+                    <p class="field-hint">
+                        <a href="forgot.html"
+                            style="color:rgba(200,33,42,0.7); text-decoration:none; font-size:0.75rem;">Забыли
+                            пароль?</a>
+                    </p>
+                </div>
+
+                <button class="btn-auth" id="btn-login" onclick="handleLogin()">Войти в аккаунт</button>
+
+                <div class="divider"><span>или</span></div>
+                <div class="social-login">
+                    <button class="btn-social" onclick="handleGoogle()">
+                        <svg viewBox="0 0 24 24" fill="none">
+                            <path
+                                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                                fill="#4285F4" />
+                            <path
+                                d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                                fill="#34A853" />
+                            <path
+                                d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"
+                                fill="#FBBC05" />
+                            <path
+                                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                                fill="#EA4335" />
+                        </svg>
+                        Войти через Google
+                    </button>
+                </div>
+
+                <p class="terms">
+                    Нет аккаунта? <a href="#" onclick="switchTabByName('register')">Зарегистрироваться</a>
+                </p>
+            </div>
+
+            <!-- REGISTER -->
+            <div class="form-panel" id="panel-register">
+                <h2 class="form-title">Создать<br /><span>аккаунт</span></h2>
+                <p class="form-subtitle">Быстрая регистрация — 1 минута</p>
+
+                <div class="alert alert-error" id="reg-error"></div>
+                <div class="alert alert-success" id="reg-success">Аккаунт создан! Проверьте email для подтверждения.
+                </div>
+
+                <div class="field-row">
+                    <div class="field">
+                        <label for="reg-name">Имя</label>
+                        <input type="text" id="reg-name" placeholder="Айбек" autocomplete="given-name" />
+                    </div>
+                    <div class="field">
+                        <label for="reg-surname">Фамилия</label>
+                        <input type="text" id="reg-surname" placeholder="Уулу" autocomplete="family-name" />
+                    </div>
+                </div>
+                <div class="field">
+                    <label for="reg-phone">Номер телефона</label>
+                    <input type="tel" id="reg-phone" placeholder="+996 ХХХ ХХХ ХХХ" autocomplete="tel" />
+                </div>
+                <div class="field">
+                    <label for="reg-email">Email</label>
+                    <input type="email" id="reg-email" placeholder="example@mail.com" autocomplete="email" />
+                </div>
+                <div class="field">
+                    <label for="reg-password">Пароль</label>
+                    <input type="password" id="reg-password" placeholder="Минимум 6 символов"
+                        autocomplete="new-password" oninput="checkStrength(this.value)" />
+                    <div id="strength-bar" style="display:flex; gap:3px; margin-top:6px;">
+                        <div id="s1"
+                            style="flex:1; height:3px; background:rgba(255,255,255,0.1); transition:background 0.3s;">
+                        </div>
+                        <div id="s2"
+                            style="flex:1; height:3px; background:rgba(255,255,255,0.1); transition:background 0.3s;">
+                        </div>
+                        <div id="s3"
+                            style="flex:1; height:3px; background:rgba(255,255,255,0.1); transition:background 0.3s;">
+                        </div>
+                        <div id="s4"
+                            style="flex:1; height:3px; background:rgba(255,255,255,0.1); transition:background 0.3s;">
+                        </div>
+                    </div>
+                    <p class="field-hint" id="strength-label"></p>
+                </div>
+                <div class="field">
+                    <label for="reg-address">Адрес доставки (необязательно)</label>
+                    <input type="text" id="reg-address" placeholder="ул. Манаса 30, кв. 5"
+                        autocomplete="street-address" />
+                </div>
+
+                <button class="btn-auth" id="btn-register" onclick="handleRegister()">Создать аккаунт</button>
+
+                <div class="divider"><span>или</span></div>
+                <div class="social-login">
+                    <button class="btn-social" onclick="handleGoogle()">
+                        <svg viewBox="0 0 24 24" fill="none">
+                            <path
+                                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                                fill="#4285F4" />
+                            <path
+                                d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                                fill="#34A853" />
+                            <path
+                                d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"
+                                fill="#FBBC05" />
+                            <path
+                                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                                fill="#EA4335" />
+                        </svg>
+                        Войти через Google
+                    </button>
+                </div>
+
+                <p class="terms">
+                    Уже есть аккаунт? <a href="#" onclick="switchTabByName('login')">Войти</a><br />
+                    Регистрируясь, вы соглашаетесь с <a href="#">условиями использования</a>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================================
+        // SUPABASE — your real keys are already here, don't change them
+        // ============================================================
+        const { createClient } = supabase;
+        const sb = createClient(
+            'https://vobkjvdkvkmegoiwwixp.supabase.co',
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZvYmtqdmRrdmttZWdvaXd3aXhwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI0MzMxNjUsImV4cCI6MjA4ODAwOTE2NX0.9ejK4ZNlZ37EO-vc1dIK5cm5xxLVpEhZU41BIR0djls'
+        );
+
+        // ============================================================
+        // TAB SWITCHING
+        // ============================================================
+        function switchTab(name, btn) {
+            document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.form-panel').forEach(p => p.classList.remove('active'));
+            btn.classList.add('active');
+            document.getElementById('panel-' + name).classList.add('active');
+        }
+
+        function switchTabByName(name) {
+            const tabs = document.querySelectorAll('.auth-tab');
+            switchTab(name, tabs[name === 'login' ? 0 : 1]);
+            return false;
+        }
+
+        // ============================================================
+        // PASSWORD STRENGTH
+        // ============================================================
+        function checkStrength(val) {
+            const colors = ['#C8212A', '#e67e22', '#D4A847', '#1a7a2e'];
+            const labels = ['', 'Слабый', 'Средний', 'Хороший', 'Сильный'];
+            let score = 0;
+            if (val.length >= 6) score++;
+            if (val.length >= 10) score++;
+            if (/[A-Z]/.test(val) || /[0-9]/.test(val)) score++;
+            if (/[^A-Za-z0-9]/.test(val)) score++;
+            ['s1', 's2', 's3', 's4'].forEach((id, i) => {
+                document.getElementById(id).style.background =
+                    i < score ? colors[score - 1] : 'rgba(255,255,255,0.1)';
+            });
+            const lbl = document.getElementById('strength-label');
+            lbl.textContent = val ? (labels[score] || '') : '';
+            lbl.style.color = score > 0 ? colors[score - 1] : '';
+        }
+
+        // ============================================================
+        // LOGIN
+        // ============================================================
+        async function handleLogin() {
+            const email = document.getElementById('login-email').value.trim();
+            const pass = document.getElementById('login-password').value;
+            const btn = document.getElementById('btn-login');
+
+            document.getElementById('login-error').style.display = 'none';
+            document.getElementById('login-success').style.display = 'none';
+
+            if (!email || !pass) {
+                document.getElementById('login-error').textContent = 'Введите email и пароль.';
+                document.getElementById('login-error').style.display = 'block';
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = 'Входим...';
+
+            const { error } = await sb.auth.signInWithPassword({ email, password: pass });
+
+            btn.disabled = false;
+            btn.textContent = 'Войти в аккаунт';
+
+            if (error) {
+                document.getElementById('login-error').textContent = 'Неверный email или пароль.';
+                document.getElementById('login-error').style.display = 'block';
+            } else {
+                document.getElementById('login-success').style.display = 'block';
+                setTimeout(() => { window.location.href = 'index.html'; }, 1500);
+            }
+        }
+
+        // ============================================================
+        // REGISTER
+        // ============================================================
+        async function handleRegister() {
+            const name = document.getElementById('reg-name').value.trim();
+            const surname = document.getElementById('reg-surname').value.trim();
+            const phone = document.getElementById('reg-phone').value.trim();
+            const email = document.getElementById('reg-email').value.trim();
+            const pass = document.getElementById('reg-password').value;
+            const address = document.getElementById('reg-address').value.trim();
+            const btn = document.getElementById('btn-register');
+
+            document.getElementById('reg-error').style.display = 'none';
+            document.getElementById('reg-success').style.display = 'none';
+
+            if (!name || !phone || !email || !pass) {
+                document.getElementById('reg-error').textContent = 'Заполните все обязательные поля.';
+                document.getElementById('reg-error').style.display = 'block';
+                return;
+            }
+
+            if (pass.length < 6) {
+                document.getElementById('reg-error').textContent = 'Пароль должен быть минимум 6 символов.';
+                document.getElementById('reg-error').style.display = 'block';
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = 'Создаём аккаунт...';
+
+            // Step 1 — create the login account
+            const { data, error } = await sb.auth.signUp({ email, password: pass });
+
+            if (error) {
+                btn.disabled = false;
+                btn.textContent = 'Создать аккаунт';
+                document.getElementById('reg-error').textContent = error.message;
+                document.getElementById('reg-error').style.display = 'block';
+                return;
+            }
+
+            // Step 2 — save name, phone, address into profiles table
+            await sb.from('profiles').insert({
+                id: data.user.id,
+                name: name,
+                surname: surname,
+                phone: phone,
+                address: address
+            });
+
+            btn.disabled = false;
+            btn.textContent = 'Создать аккаунт';
+            document.getElementById('reg-success').style.display = 'block';
+        }
+
+        // ============================================================
+        // GOOGLE OAUTH
+        // ============================================================
+        async function handleGoogle() {
+            const { error } = await sb.auth.signInWithOAuth({
+                provider: 'google',
+                options: { redirectTo: window.location.origin + '/index.html' }
+            });
+            if (error) alert('Ошибка: ' + error.message);
+        }
+    </script>
+</body>
+
+</html>
